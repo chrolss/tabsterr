@@ -113,6 +113,21 @@ body {
   line-height: 1;
 }
 
+.nav-icon.material-icons {
+  font-family: "Material Icons", sans-serif;
+  font-size: 22px;
+  font-weight: normal;
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "liga";
+}
+
 /* Main */
 .main {
   flex: 1 1 auto;
@@ -202,10 +217,6 @@ body {
   transform: translateY(-1px);
 }
 
-.tab-card-icon {
-  font-size: 1.6rem;
-}
-
 .tab-card-name {
   font-weight: 600;
   word-break: break-word;
@@ -275,6 +286,21 @@ body {
 
 .alphaTab-container {
   min-height: 100%;
+}
+
+.alphaTab-container.hidden {
+  display: none;
+}
+
+.backing-pdf {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: var(--surface);
+}
+
+.backing-pdf.hidden {
+  display: none;
 }
 
 /* Controls */
@@ -388,6 +414,52 @@ body {
 .speed-btn {
   font-size: 1.3rem;
   padding: 0 10px;
+}
+
+.backing-progress {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.backing-progress input[type="range"] {
+  flex: 1 1 auto;
+  max-width: 400px;
+  min-width: 80px;
+  height: 6px;
+  margin: 0 10px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.backing-progress input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+}
+
+.backing-progress input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+}
+
+.time-display {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .settings-btn svg {

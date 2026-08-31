@@ -11,13 +11,19 @@
     tabList: document.getElementById("tab-list"),
     emptyState: document.getElementById("empty-state"),
     searchInput: document.getElementById("tab-search"),
+    backingList: document.getElementById("backing-list"),
+    backingEmptyState: document.getElementById("backing-empty-state"),
     backButton: document.getElementById("back-button"),
     songTitle: document.getElementById("song-title"),
     songArtist: document.getElementById("song-artist"),
     alphaTabContainer: document.getElementById("alphaTab-container"),
-    playerControls: document.getElementById("player-controls"),
+    backingPdf: document.getElementById("backing-pdf"),
+    tabControls: document.getElementById("player-controls"),
+    backingControls: document.getElementById("backing-controls"),
     playButton: document.getElementById("play-button"),
     stopButton: document.getElementById("stop-button"),
+    backingPlayButton: document.getElementById("backing-play-button"),
+    backingStopButton: document.getElementById("backing-stop-button"),
     speedDown: document.getElementById("speed-down"),
     speedUp: document.getElementById("speed-up"),
     speedValue: document.getElementById("speed-value"),
@@ -26,20 +32,32 @@
     tracksPanel: document.getElementById("tracks-panel"),
     closeTracks: document.getElementById("close-tracks"),
     tracksList: document.getElementById("tracks-list"),
+    progressBar: document.getElementById("progress-bar"),
+    currentTime: document.getElementById("current-time"),
+    duration: document.getElementById("duration"),
+    backingAudio: document.getElementById("backing-audio"),
     overlay: document.getElementById("overlay"),
   };
 
   let tabs = [];
+  let backingTracks = [];
   let api = null;
   let speedIndex = 3; // default 1x
   let mutedTracks = new Set();
+  let playerMode = "tab"; // "tab" | "backing"
+  let backTarget = "tabs"; // where the back button goes
 
   // Navigation
+  function setControlMode(mode) {
+    playerMode = mode;
+  }
+
   function showView(viewName) {
     els.tabsView.classList.add("hidden");
     els.backingView.classList.add("hidden");
     els.playerView.classList.add("hidden");
-    els.playerControls.classList.add("hidden");
+    els.tabControls.classList.add("hidden");
+    els.backingControls.classList.add("hidden");
     els.tracksPanel.classList.add("hidden");
     els.sidepane.classList.remove("hidden");
 
@@ -53,19 +71,48 @@
       document.querySelector('[data-view="backing"]').classList.add("active");
     } else if (viewName === "player") {
       els.playerView.classList.remove("hidden");
-      els.playerControls.classList.remove("hidden");
       els.sidepane.classList.add("hidden");
-      document.querySelector('[data-view="tabs"]').classList.add("active");
+      if (playerMode === "backing") {
+        els.backingControls.classList.remove("hidden");
+        document.querySelector('[data-view="backing"]').classList.add("active");
+      } else {
+        els.tabControls.classList.remove("hidden");
+        document.querySelector('[data-view="tabs"]').classList.add("active");
+      }
     }
+  }
+
+  function resetAudio() {
+    const audio = els.backingAudio;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = "";
+    updateAudioProgress();
+  }
+
+  function resetPlayer() {
+    if (api) {
+      api.destroy();
+      api = null;
+    }
+    resetAudio();
+    els.alphaTabContainer.innerHTML = "";
+    els.backingPdf.src = "";
+    els.backingPdf.classList.add("hidden");
+    els.alphaTabContainer.classList.remove("hidden");
+    els.tracksList.innerHTML = "";
+    els.loopButton.classList.remove("active");
+    updatePlayButton(false);
   }
 
   els.navItems.forEach((item) => {
     item.addEventListener("click", () => {
       const view = item.dataset.view;
       if (view === "tabs") {
+        resetPlayer();
         showView("tabs");
-        if (api) api.pause();
       } else if (view === "backing") {
+        resetPlayer();
         showView("backing");
       }
       // settings is a placeholder for future functionality
@@ -74,11 +121,15 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.code !== "Space") return;
-    if (els.playerView.classList.contains("hidden") || !api) return;
+    if (els.playerView.classList.contains("hidden")) return;
     const tag = document.activeElement?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") return;
     e.preventDefault();
-    if (!e.repeat) api.playPause();
+    if (playerMode === "tab") {
+      if (api) api.playPause();
+    } else if (playerMode === "backing") {
+      toggleAudioPlayback();
+    }
   });
 
   // Tab list
@@ -105,11 +156,10 @@
     list.forEach((tab) => {
       const card = document.createElement("div");
       card.className = "tab-card";
-      card.innerHTML = `
-        <span class="tab-card-icon">🎼</span>
-        <span class="tab-card-name"></span>
-      `;
-      card.querySelector(".tab-card-name").textContent = tab.name;
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "tab-card-name";
+      nameSpan.textContent = tab.displayName;
+      card.appendChild(nameSpan);
       card.addEventListener("click", () => loadTab(tab));
       els.tabList.appendChild(card);
     });
@@ -118,9 +168,100 @@
   els.searchInput.addEventListener("input", (e) => {
     const query = e.target.value.trim().toLowerCase();
     const filtered = tabs.filter((tab) =>
-      tab.name.toLowerCase().includes(query)
+      (tab.displayName || "").toLowerCase().includes(query) ||
+      (tab.artist || "").toLowerCase().includes(query) ||
+      (tab.title || "").toLowerCase().includes(query)
     );
     renderTabList(filtered);
+  });
+
+  // Backing tracks
+  async function loadBackingTracks() {
+    try {
+      const res = await fetch("/api/backing-tracks");
+      backingTracks = await res.json();
+      renderBackingList(backingTracks);
+    } catch (err) {
+      console.error("Failed to load backing tracks", err);
+      els.backingList.innerHTML =
+        '<div class="empty-state">Could not load backing tracks.</div>';
+    }
+  }
+
+  function renderBackingList(list) {
+    els.backingList.innerHTML = "";
+    if (list.length === 0) {
+      els.backingEmptyState.classList.remove("hidden");
+      return;
+    }
+    els.backingEmptyState.classList.add("hidden");
+
+    list.forEach((track) => {
+      const card = document.createElement("div");
+      card.className = "tab-card";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "tab-card-name";
+      nameSpan.textContent = track.displayName;
+      card.appendChild(nameSpan);
+      card.addEventListener("click", () => loadBackingTrack(track));
+      els.backingList.appendChild(card);
+    });
+  }
+
+  function formatTime(seconds) {
+    if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function updateAudioProgress() {
+    const audio = els.backingAudio;
+    const current = audio.currentTime || 0;
+    const duration = audio.duration || 0;
+    els.currentTime.textContent = formatTime(current);
+    els.duration.textContent = formatTime(duration);
+    els.progressBar.value = duration ? (current / duration) * 100 : 0;
+    els.progressBar.max = 100;
+  }
+
+  function toggleAudioPlayback() {
+    const audio = els.backingAudio;
+    if (!audio.src) return;
+    if (audio.paused) {
+      audio.play().catch((err) => console.error("Audio play failed", err));
+    } else {
+      audio.pause();
+    }
+  }
+
+  function loadBackingTrack(track) {
+    resetPlayer();
+    setControlMode("backing");
+    backTarget = "backing";
+    showView("player");
+
+    els.songTitle.textContent = track.displayName;
+    els.songArtist.textContent = "";
+    els.alphaTabContainer.classList.add("hidden");
+    els.backingPdf.classList.remove("hidden");
+    els.backingPdf.src = `${track.pdfPath}#toolbar=0&navpanes=0`;
+
+    els.backingAudio.src = track.mp3Path;
+    els.backingAudio.load();
+    updateAudioProgress();
+  }
+
+  els.backingAudio.addEventListener("timeupdate", updateAudioProgress);
+  els.backingAudio.addEventListener("loadedmetadata", updateAudioProgress);
+  els.backingAudio.addEventListener("ended", () => updatePlayButton(false));
+  els.backingAudio.addEventListener("play", () => updatePlayButton(true));
+  els.backingAudio.addEventListener("pause", () => updatePlayButton(false));
+
+  els.progressBar.addEventListener("input", () => {
+    const audio = els.backingAudio;
+    if (!audio.duration || !isFinite(audio.duration)) return;
+    audio.currentTime = (els.progressBar.value / 100) * audio.duration;
   });
 
   // Player
@@ -130,16 +271,13 @@
   }
 
   function loadTab(tab) {
+    resetPlayer();
+    setControlMode("tab");
+    backTarget = "tabs";
     setOverlay(true);
     showView("player");
     mutedTracks.clear();
 
-    if (api) {
-      api.destroy();
-      api = null;
-    }
-
-    els.alphaTabContainer.innerHTML = "";
     els.songTitle.textContent = tab.name;
     els.songArtist.textContent = "";
     els.tracksList.innerHTML = "";
@@ -198,8 +336,9 @@
   }
 
   function updatePlayButton(isPlaying) {
-    els.playButton.classList.toggle("playing", isPlaying);
-    els.playButton.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+    const btn = playerMode === "backing" ? els.backingPlayButton : els.playButton;
+    btn.classList.toggle("playing", isPlaying);
+    btn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
   }
 
   function updateSpeedDisplay() {
@@ -254,8 +393,8 @@
 
   // Controls
   els.backButton.addEventListener("click", () => {
-    showView("tabs");
-    if (api) api.pause();
+    resetPlayer();
+    showView(backTarget || "tabs");
   });
 
   els.playButton.addEventListener("click", () => {
@@ -266,6 +405,18 @@
   els.stopButton.addEventListener("click", () => {
     if (!api) return;
     api.stop();
+  });
+
+  els.backingPlayButton.addEventListener("click", () => {
+    toggleAudioPlayback();
+  });
+
+  els.backingStopButton.addEventListener("click", () => {
+    const audio = els.backingAudio;
+    audio.pause();
+    audio.currentTime = 0;
+    updateAudioProgress();
+    updatePlayButton(false);
   });
 
   els.speedDown.addEventListener("click", () => {
@@ -299,5 +450,7 @@
 
   // Init
   loadTabs();
+  loadBackingTracks();
+  setControlMode("tab");
   showView("tabs");
 })();

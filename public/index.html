@@ -8,6 +8,7 @@
   <link rel="apple-touch-icon" href="/app-icon.png" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#1a1a1a" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.js"></script>
 </head>
@@ -19,7 +20,7 @@
       </div>
       <nav class="sidepane-nav">
         <button class="nav-item active" data-view="tabs">
-          <span class="nav-icon">🎼</span>
+          <span class="nav-icon material-icons" aria-hidden="true">&#xe03d;</span>
           <span class="nav-label">Tabs</span>
         </button>
         <button class="nav-item" data-view="backing">
@@ -61,12 +62,13 @@
           <header class="view-header">
             <h1>Backing tracks</h1>
           </header>
-          <div class="empty-state">Coming soon.</div>
+          <div id="backing-list" class="tab-list"></div>
+          <div id="backing-empty-state" class="empty-state hidden">No backing tracks found.</div>
         </section>
 
         <section id="player-view" class="view hidden">
           <header class="player-header">
-            <button id="back-button" class="btn-icon" aria-label="Back to tabs">← Back</button>
+            <button id="back-button" class="btn-icon" aria-label="Back">← Back</button>
             <div class="song-info">
               <span id="song-title" class="song-title"></span>
               <span id="song-artist" class="song-artist"></span>
@@ -74,6 +76,7 @@
           </header>
           <div class="player-scroll-area">
             <div id="alphaTab-container" class="alphaTab-container"></div>
+            <iframe id="backing-pdf" class="backing-pdf hidden" title="Backing track sheet"></iframe>
           </div>
         </section>
       </main>
@@ -103,6 +106,30 @@
           <button id="loop-button" class="control-btn" aria-label="Loop section">↻</button>
           <button id="tracks-button" class="control-btn" aria-label="Tracks">Tracks</button>
         </div>
+      </footer>
+
+      <footer id="backing-controls" class="player-controls hidden">
+        <div class="controls-left">
+          <button id="backing-play-button" class="control-btn play-btn" aria-label="Play">
+            <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
+            </svg>
+          </button>
+          <button id="backing-stop-button" class="control-btn stop-btn" aria-label="Stop">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="6" y="6" width="12" height="12" rx="1"/>
+            </svg>
+          </button>
+        </div>
+        <div class="controls-center backing-progress">
+          <span id="current-time" class="time-display">0:00</span>
+          <input id="progress-bar" type="range" min="0" max="100" value="0" step="0.1" aria-label="Progress" />
+          <span id="duration" class="time-display">0:00</span>
+        </div>
+        <audio id="backing-audio" preload="metadata"></audio>
       </footer>
     </div>
   </div>
