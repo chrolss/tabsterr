@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY . .
+RUN mkdir -p tabs backing_tracks
 
 ENV PORT=3000
 EXPOSE 3000

@@ -1,0 +1,7 @@
+.git
+.gitignore
+node_modules
+tabs
+backing_tracks
+test.js
+test-*.png
