@@ -1,0 +1,21 @@
+{
+  "name": "tabsterr",
+  "version": "0.1.0",
+  "description": "Self-hosted browser-based guitar tab player",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "puppeteer-core": "^25.9.0"
+  }
+}

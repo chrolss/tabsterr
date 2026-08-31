@@ -1,0 +1,10 @@
+node_modules/
+*.log
+test-screenshot.png
+test-tracks-panel.png
+test-mobile.png
+.DS_Store
+*.gp3
+*.gp4
+*.pdf
+*.mp3

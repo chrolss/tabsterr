@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tabsterr</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.js"></script>
+</head>
+<body>
+  <div id="app">
+    <aside class="sidepane" id="sidepane">
+      <div class="sidepane-header">
+        <div class="logo">Tabsterr</div>
+      </div>
+      <nav class="sidepane-nav">
+        <button class="nav-item active" data-view="tabs">
+          <span class="nav-icon">🎼</span>
+          <span class="nav-label">Tabs</span>
+        </button>
+        <button class="nav-item" data-view="backing">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18V5l10-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="16" cy="16" r="3"/>
+          </svg>
+          <span class="nav-label">Backing tracks</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span class="nav-label">Settings</span>
+        </button>
+      </nav>
+    </aside>
+
+    <div class="content">
+      <main class="main" id="main">
+        <section id="tabs-view" class="view">
+          <header class="view-header">
+            <h1>Browse tabs</h1>
+            <input
+              type="search"
+              id="tab-search"
+              class="tab-search"
+              placeholder="Search tabs..."
+              autocomplete="off"
+            />
+          </header>
+          <div id="tab-list" class="tab-list"></div>
+          <div id="empty-state" class="empty-state hidden">No tabs found.</div>
+        </section>
+
+        <section id="backing-view" class="view hidden">
+          <header class="view-header">
+            <h1>Backing tracks</h1>
+          </header>
+          <div class="empty-state">Coming soon.</div>
+        </section>
+
+        <section id="player-view" class="view hidden">
+          <header class="player-header">
+            <button id="back-button" class="btn-icon" aria-label="Back to tabs">← Back</button>
+            <div class="song-info">
+              <span id="song-title" class="song-title"></span>
+              <span id="song-artist" class="song-artist"></span>
+            </div>
+          </header>
+          <div class="player-scroll-area">
+            <div id="alphaTab-container" class="alphaTab-container"></div>
+          </div>
+        </section>
+      </main>
+
+      <footer id="player-controls" class="player-controls hidden">
+        <div class="controls-left">
+          <button id="play-button" class="control-btn play-btn" aria-label="Play">
+            <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
+            </svg>
+          </button>
+          <button id="stop-button" class="control-btn stop-btn" aria-label="Stop">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="6" y="6" width="12" height="12" rx="1"/>
+            </svg>
+          </button>
+        </div>
+        <div class="controls-center">
+          <button id="speed-down" class="control-btn speed-btn" aria-label="Slow down">−</button>
+          <span id="speed-value" class="speed-value">1×</span>
+          <button id="speed-up" class="control-btn speed-btn" aria-label="Speed up">+</button>
+        </div>
+        <div class="controls-right">
+          <button id="loop-button" class="control-btn" aria-label="Loop section">↻</button>
+          <button id="tracks-button" class="control-btn" aria-label="Tracks">Tracks</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <div id="tracks-panel" class="tracks-panel hidden">
+    <div class="tracks-panel-header">
+      <strong>Tracks</strong>
+      <button id="close-tracks" class="btn-icon" aria-label="Close">✕</button>
+    </div>
+    <div id="tracks-list" class="tracks-list"></div>
+  </div>
+
+  <div id="overlay" class="overlay hidden">
+    <div class="overlay-content">Loading tab...</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
