@@ -13,6 +13,12 @@
     searchInput: document.getElementById("tab-search"),
     backingList: document.getElementById("backing-list"),
     backingEmptyState: document.getElementById("backing-empty-state"),
+    modesView: document.getElementById("modes-view"),
+    modesBackButton: document.getElementById("modes-back-button"),
+    modesTitle: document.getElementById("modes-title"),
+    modesRoot: document.getElementById("modes-root"),
+    modesList: document.getElementById("modes-list"),
+    fretboard: document.getElementById("fretboard"),
     backButton: document.getElementById("back-button"),
     songTitle: document.getElementById("song-title"),
     songArtist: document.getElementById("song-artist"),
@@ -55,6 +61,7 @@
   function showView(viewName) {
     els.tabsView.classList.add("hidden");
     els.backingView.classList.add("hidden");
+    els.modesView.classList.add("hidden");
     els.playerView.classList.add("hidden");
     els.tabControls.classList.add("hidden");
     els.backingControls.classList.add("hidden");
@@ -69,6 +76,11 @@
     } else if (viewName === "backing") {
       els.backingView.classList.remove("hidden");
       document.querySelector('[data-view="backing"]').classList.add("active");
+    } else if (viewName === "modes") {
+      els.modesView.classList.remove("hidden");
+      els.sidepane.classList.add("hidden");
+      document.querySelector('[data-view="modes"]').classList.add("active");
+      renderModes();
     } else if (viewName === "player") {
       els.playerView.classList.remove("hidden");
       els.sidepane.classList.add("hidden");
@@ -114,9 +126,16 @@
       } else if (view === "backing") {
         resetPlayer();
         showView("backing");
+      } else if (view === "modes") {
+        resetPlayer();
+        showView("modes");
       }
       // settings is a placeholder for future functionality
     });
+  });
+
+  els.modesBackButton.addEventListener("click", () => {
+    showView("tabs");
   });
 
   document.addEventListener("keydown", (e) => {
@@ -446,6 +465,141 @@
 
   els.closeTracks.addEventListener("click", () => {
     els.tracksPanel.classList.add("hidden");
+  });
+
+  // Modes
+  const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const NOTE_PITCH = Object.fromEntries(NOTES.map((n, i) => [n, i]));
+  const STRING_TUNING = [4, 9, 2, 7, 11, 4]; // E A D G B E (low to high)
+  const KEY_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
+  const MODE_DEGREE = {
+    ionian: 0,
+    dorian: 2,
+    phrygian: 4,
+    lydian: 5,
+    mixolydian: 7,
+    aeolian: 9,
+    locrian: 11,
+  };
+  const MODE_NAMES = {
+    ionian: 'Ionian',
+    dorian: 'Dorian',
+    phrygian: 'Phrygian',
+    lydian: 'Lydian',
+    mixolydian: 'Mixolydian',
+    aeolian: 'Aeolian',
+    locrian: 'Locrian',
+  };
+
+  function pitchAt(stringIdx, fret) {
+    return (STRING_TUNING[stringIdx] + fret) % 12;
+  }
+
+  function pitchToNote(pitch) {
+    return NOTES[pitch];
+  }
+
+  function getSelectedMode() {
+    const root = els.modesRoot.value;
+    const modeBtn = els.modesList.querySelector('.mode-btn.active');
+    return { root, mode: modeBtn ? modeBtn.dataset.mode : 'ionian' };
+  }
+
+  function computeModeBox(rootNote, modeName) {
+    const keyPitch = NOTE_PITCH[rootNote];
+    const scalePitches = KEY_INTERVALS.map((interval) => (keyPitch + interval) % 12);
+    const modeRootPitch = (keyPitch + MODE_DEGREE[modeName]) % 12;
+    const rootFret = (modeRootPitch - STRING_TUNING[0] + 12) % 12;
+
+    let startFret = modeName === 'ionian' ? rootFret - 1 : rootFret;
+    if (startFret < 0) startFret = 0;
+    let endFret = startFret + 3;
+
+    function allPitchesPresent(from, to) {
+      const present = new Set();
+      for (let s = 0; s < STRING_TUNING.length; s++) {
+        for (let f = from; f <= to; f++) {
+          if (scalePitches.includes(pitchAt(s, f))) {
+            present.add(pitchAt(s, f));
+          }
+        }
+      }
+      return present.size === scalePitches.length;
+    }
+
+    if (!allPitchesPresent(startFret, endFret)) {
+      endFret++;
+    }
+
+    const dots = [];
+    for (let s = 0; s < STRING_TUNING.length; s++) {
+      for (let f = startFret; f <= endFret; f++) {
+        const pitch = pitchAt(s, f);
+        if (scalePitches.includes(pitch)) {
+          dots.push({
+            string: s,
+            fret: f,
+            note: pitchToNote(pitch),
+            isRoot: pitch === modeRootPitch,
+          });
+        }
+      }
+    }
+
+    return { rootFret, startFret, endFret, dots, modeRoot: pitchToNote(modeRootPitch) };
+  }
+
+  function renderFretboard() {
+    const { root, mode } = getSelectedMode();
+    const box = computeModeBox(root, mode);
+
+    els.modesTitle.textContent = `${box.modeRoot} ${MODE_NAMES[mode]}`;
+
+    let html = `<div class='fretboard-caption'>${box.modeRoot} ${MODE_NAMES[mode]}</div>`;
+    html += `<div class='fretboard-grid'>`;
+
+    // Header row: string names, low E left → high e right
+    html += `<div class='fret-row'>`;
+    html += `<div class='fret-label string-name'></div>`;
+    for (let s = 0; s < STRING_TUNING.length; s++) {
+      const stringName = s === 0 ? 'E' : s === 1 ? 'A' : s === 2 ? 'D' : s === 3 ? 'G' : s === 4 ? 'B' : 'e';
+      html += `<div class='fret-label'>${stringName}</div>`;
+    }
+    html += `</div>`;
+
+    // Fret rows, lowest fret at the top
+    for (let f = box.startFret; f <= box.endFret; f++) {
+      html += `<div class='fret-row'>`;
+      html += `<div class='string-label'>${f}</div>`;
+      for (let s = 0; s < STRING_TUNING.length; s++) {
+        const dot = box.dots.find((d) => d.string === s && d.fret === f);
+        if (dot) {
+          const rootClass = dot.isRoot ? ' root' : '';
+          html += `<div class='fret-cell'><div class='fret-dot${rootClass}'><span>${dot.note}</span></div></div>`;
+        } else {
+          html += `<div class='fret-cell'></div>`;
+        }
+      }
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+    els.fretboard.innerHTML = html;
+  }
+
+  function renderModes() {
+    if (els.modesView.classList.contains('hidden')) return;
+    renderFretboard();
+  }
+
+  els.modesRoot.addEventListener('change', renderFretboard);
+
+  els.modesList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    els.modesList.querySelectorAll('.mode-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderFretboard();
   });
 
   // Init

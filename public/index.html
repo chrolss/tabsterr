@@ -31,6 +31,13 @@
           </svg>
           <span class="nav-label">Backing tracks</span>
         </button>
+        <button class="nav-item" data-view="modes">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+          <span class="nav-label">Modes</span>
+        </button>
         <button class="nav-item" data-view="settings">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3"/>
@@ -64,6 +71,46 @@
           </header>
           <div id="backing-list" class="tab-list"></div>
           <div id="backing-empty-state" class="empty-state hidden">No backing tracks found.</div>
+        </section>
+
+        <section id="modes-view" class="view hidden">
+          <header class="modes-header">
+            <button id="modes-back-button" class="btn-icon" aria-label="Back">← Back</button>
+            <h1 id="modes-title" class="modes-title">C Ionian</h1>
+          </header>
+          <div class="modes-layout">
+            <aside class="modes-sidebar">
+              <label class="modes-label" for="modes-root">Key</label>
+              <select id="modes-root" class="modes-select">
+                <option value="C">C</option>
+                <option value="C#">C#</option>
+                <option value="D">D</option>
+                <option value="D#">D#</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="F#">F#</option>
+                <option value="G">G</option>
+                <option value="G#">G#</option>
+                <option value="A">A</option>
+                <option value="A#">A#</option>
+                <option value="B">B</option>
+              </select>
+              <div class="modes-divider"></div>
+              <span class="modes-label">Mode</span>
+              <div id="modes-list" class="modes-list">
+                <button class="mode-btn active" data-mode="ionian">Ionian</button>
+                <button class="mode-btn" data-mode="dorian">Dorian</button>
+                <button class="mode-btn" data-mode="phrygian">Phrygian</button>
+                <button class="mode-btn" data-mode="lydian">Lydian</button>
+                <button class="mode-btn" data-mode="mixolydian">Mixolydian</button>
+                <button class="mode-btn" data-mode="aeolian">Aeolian</button>
+                <button class="mode-btn" data-mode="locrian">Locrian</button>
+              </div>
+            </aside>
+            <main class="modes-board">
+              <div id="fretboard" class="fretboard"></div>
+            </main>
+          </div>
         </section>
 
         <section id="player-view" class="view hidden">
