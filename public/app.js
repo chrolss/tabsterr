@@ -490,6 +490,11 @@
     aeolian: 'Aeolian',
     locrian: 'Locrian',
   };
+  // Hardcoded standard modal shapes (fret offsets from the root on the low E string).
+  const MODE_SHAPES = {
+    lydian: [[0, 2], [-1, 1, 2], [-1, 1, 2], [-1, 1], [-1, 0, 2], [-1, 0]],
+    mixolydian: [[12, 14], [11, 12, 14], [11, 12, 14], [11, 13, 14], [12, 14, 15], [12]],
+  };
 
   function pitchAt(stringIdx, fret) {
     return (STRING_TUNING[stringIdx] + fret) % 12;
@@ -509,39 +514,76 @@
     const keyPitch = NOTE_PITCH[rootNote];
     const scalePitches = KEY_INTERVALS.map((interval) => (keyPitch + interval) % 12);
     const modeRootPitch = (keyPitch + MODE_DEGREE[modeName]) % 12;
-    const rootFret = (modeRootPitch - STRING_TUNING[0] + 12) % 12;
+    let rootFret = (modeRootPitch - STRING_TUNING[0] + 12) % 12;
 
-    let startFret = modeName === 'ionian' ? rootFret - 1 : rootFret;
-    if (startFret < 0) startFret = 0;
-    let endFret = startFret + 3;
+    const dots = [];
+    let startFret;
+    let endFret;
 
-    function allPitchesPresent(from, to) {
-      const present = new Set();
+    // Use hardcoded standard shapes for modes that don't fit a simple box.
+    if (MODE_SHAPES[modeName]) {
+      const shape = MODE_SHAPES[modeName];
+      let frets = shape.map((offsets) => offsets.map((o) => rootFret + o));
+      const minFret = Math.min(...frets.flat());
+      // Push up an octave so the shape never includes open strings.
+      if (minFret < 1) {
+        rootFret += 12;
+        frets = shape.map((offsets) => offsets.map((o) => rootFret + o));
+      }
       for (let s = 0; s < STRING_TUNING.length; s++) {
-        for (let f = from; f <= to; f++) {
-          if (scalePitches.includes(pitchAt(s, f))) {
-            present.add(pitchAt(s, f));
+        for (const f of frets[s]) {
+          const pitch = pitchAt(s, f);
+          if (scalePitches.includes(pitch)) {
+            dots.push({
+              string: s,
+              fret: f,
+              note: pitchToNote(pitch),
+              isRoot: pitch === modeRootPitch,
+            });
           }
         }
       }
-      return present.size === scalePitches.length;
-    }
+      const allFrets = frets.flat();
+      startFret = Math.min(...allFrets);
+      endFret = Math.max(...allFrets);
+    } else {
+      const ionianStartOffset = modeName === 'ionian' ? 1 : 0;
 
-    if (!allPitchesPresent(startFret, endFret)) {
-      endFret++;
-    }
+      // Push the whole shape up an octave so it never includes open strings.
+      if (rootFret - ionianStartOffset < 1) {
+        rootFret += 12;
+      }
 
-    const dots = [];
-    for (let s = 0; s < STRING_TUNING.length; s++) {
-      for (let f = startFret; f <= endFret; f++) {
-        const pitch = pitchAt(s, f);
-        if (scalePitches.includes(pitch)) {
-          dots.push({
-            string: s,
-            fret: f,
-            note: pitchToNote(pitch),
-            isRoot: pitch === modeRootPitch,
-          });
+      startFret = modeName === 'ionian' ? rootFret - 1 : rootFret;
+      endFret = startFret + 3;
+
+      function allPitchesPresent(from, to) {
+        const present = new Set();
+        for (let s = 0; s < STRING_TUNING.length; s++) {
+          for (let f = from; f <= to; f++) {
+            if (scalePitches.includes(pitchAt(s, f))) {
+              present.add(pitchAt(s, f));
+            }
+          }
+        }
+        return present.size === scalePitches.length;
+      }
+
+      if (!allPitchesPresent(startFret, endFret)) {
+        endFret++;
+      }
+
+      for (let s = 0; s < STRING_TUNING.length; s++) {
+        for (let f = startFret; f <= endFret; f++) {
+          const pitch = pitchAt(s, f);
+          if (scalePitches.includes(pitch)) {
+            dots.push({
+              string: s,
+              fret: f,
+              note: pitchToNote(pitch),
+              isRoot: pitch === modeRootPitch,
+            });
+          }
         }
       }
     }
