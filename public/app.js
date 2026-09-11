@@ -19,6 +19,8 @@
     modesRoot: document.getElementById("modes-root"),
     modesList: document.getElementById("modes-list"),
     fretboard: document.getElementById("fretboard"),
+    settingsView: document.getElementById("settings-view"),
+    themeSelect: document.getElementById("theme-select"),
     backButton: document.getElementById("back-button"),
     songTitle: document.getElementById("song-title"),
     songArtist: document.getElementById("song-artist"),
@@ -62,6 +64,7 @@
     els.tabsView.classList.add("hidden");
     els.backingView.classList.add("hidden");
     els.modesView.classList.add("hidden");
+    els.settingsView.classList.add("hidden");
     els.playerView.classList.add("hidden");
     els.tabControls.classList.add("hidden");
     els.backingControls.classList.add("hidden");
@@ -81,6 +84,9 @@
       els.sidepane.classList.add("hidden");
       document.querySelector('[data-view="modes"]').classList.add("active");
       renderModes();
+    } else if (viewName === "settings") {
+      els.settingsView.classList.remove("hidden");
+      document.querySelector('[data-view="settings"]').classList.add("active");
     } else if (viewName === "player") {
       els.playerView.classList.remove("hidden");
       els.sidepane.classList.add("hidden");
@@ -129,8 +135,10 @@
       } else if (view === "modes") {
         resetPlayer();
         showView("modes");
+      } else if (view === "settings") {
+        resetPlayer();
+        showView("settings");
       }
-      // settings is a placeholder for future functionality
     });
   });
 
@@ -150,6 +158,45 @@
       toggleAudioPlayback();
     }
   });
+
+  // Theme
+  function applyTheme(themeName) {
+    document.documentElement.dataset.theme = themeName;
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute(
+        "content",
+        themeName === "tabsterr-dark" ? "#000000" : "#1a1a1a"
+      );
+    }
+    if (els.themeSelect) {
+      els.themeSelect.value = themeName;
+    }
+    try {
+      localStorage.setItem("tabsterr-theme", themeName);
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function loadTheme() {
+    let theme = "original";
+    try {
+      theme = localStorage.getItem("tabsterr-theme") || "original";
+    } catch {
+      // ignore storage errors
+    }
+    if (!["original", "tabsterr-dark"].includes(theme)) {
+      theme = "original";
+    }
+    applyTheme(theme);
+  }
+
+  if (els.themeSelect) {
+    els.themeSelect.addEventListener("change", (e) => {
+      applyTheme(e.target.value);
+    });
+  }
 
   // Tab list
   async function loadTabs() {
@@ -595,7 +642,7 @@
     const { root, mode } = getSelectedMode();
     const box = computeModeBox(root, mode);
 
-    els.modesTitle.textContent = `${box.modeRoot} ${MODE_NAMES[mode]}`;
+    els.modesTitle.textContent = 'Modes';
 
     let html = `<div class='fretboard-caption'>${box.modeRoot} ${MODE_NAMES[mode]}</div>`;
     html += `<div class='fretboard-grid'>`;
@@ -645,6 +692,7 @@
   });
 
   // Init
+  loadTheme();
   loadTabs();
   loadBackingTracks();
   setControlMode("tab");
