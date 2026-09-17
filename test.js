@@ -53,9 +53,13 @@ async function run() {
     await page.goto(URL, { waitUntil: 'networkidle2', timeout: 30000 });
     await delay(1000);
 
-    // Click the tab card
-    await page.waitForSelector('.tab-card', { timeout: 10000 });
-    await page.click('.tab-card');
+    // Click the first artist row to expand its songs
+    await page.waitForSelector('.artist-row', { timeout: 10000 });
+    await page.click('.artist-row');
+
+    // Wait for a visible tab card under the artist
+    await page.waitForSelector('.artist-songs:not(.hidden) .tab-card', { timeout: 10000 });
+    await page.click('.artist-songs:not(.hidden) .tab-card');
 
     // Wait for alphaTab to render
     await page.waitForFunction(

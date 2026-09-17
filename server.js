@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+const guitarlesson = require('./scripts/guitarlesson');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const TABS_DIR = path.join(__dirname, 'tabs');
@@ -71,6 +73,7 @@ function getTabMetadata(filePath) {
   return { title: baseName, artist: '' };
 }
 
+app.use(express.json());
 app.use(express.static(PUBLIC_DIR));
 app.use('/tabs', express.static(TABS_DIR));
 app.use('/backing_tracks', express.static(BACKING_TRACKS_DIR));
@@ -159,6 +162,67 @@ app.get('/api/tabs', (req, res) => {
 
     res.json(tabs);
   });
+});
+
+app.post('/api/guitarlesson/search', async (req, res) => {
+  const query = (req.body.query || '').trim();
+  if (!query) {
+    return res.status(400).json({ error: 'A search query is required.' });
+  }
+  try {
+    const results = await guitarlesson.searchTabs(query, { maxPages: 5 });
+    let rows = results;
+    if (req.body.artist) {
+      const artist = String(req.body.artist).trim();
+      if (artist) rows = rows.filter((r) => guitarlesson.artistMatches(r, artist));
+    }
+    res.json({ results: rows });
+  } catch (err) {
+    console.error('guitarlesson search failed:', err.message);
+    res.status(502).json({ error: `Search failed: ${err.message}` });
+  }
+});
+
+app.post('/api/guitarlesson/download', async (req, res) => {
+  const url = (req.body.url || '').trim();
+  if (!url) {
+    return res.status(400).json({ error: 'A tab URL is required.' });
+  }
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return res.status(400).json({ error: 'Invalid tab URL.' });
+  }
+  if (parsed.hostname !== 'www.theguitarlesson.com' && !parsed.hostname.endsWith('.theguitarlesson.com')) {
+    return res.status(400).json({ error: 'URL must point to theguitarlesson.com.' });
+  }
+
+  try {
+    const info = await guitarlesson.getTabPage(url, {});
+    const format = 'gp4';
+    let selected = info.files.filter((f) => f.ext === format);
+    if (!selected.length) {
+      selected = info.files.filter((f) => f.ext === 'gp3');
+    }
+    if (!selected.length) {
+      const avail = info.files.map((f) => f.ext).join(', ') || 'none';
+      return res.status(404).json({ error: `No .${format} file on page (available: ${avail}).` });
+    }
+
+    fs.mkdirSync(TABS_DIR, { recursive: true });
+    const file = selected[0];
+    const fileName = guitarlesson.buildFileName(info, file.ext);
+    const dest = path.join(TABS_DIR, fileName);
+    if (fs.existsSync(dest)) {
+      return res.json({ saved: false, fileName, existing: true });
+    }
+    const bytes = await guitarlesson.downloadFile(file.url, dest);
+    res.json({ saved: true, fileName, bytes });
+  } catch (err) {
+    console.error('guitarlesson download failed:', err.message);
+    res.status(502).json({ error: `Download failed: ${err.message}` });
+  }
 });
 
 app.listen(PORT, () => {

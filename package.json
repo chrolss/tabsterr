@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test.js"
+    "test": "node test.js",
+    "guitarlesson": "node scripts/guitarlesson.js"
   },
   "dependencies": {
     "express": "^4.21.0"

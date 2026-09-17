@@ -43,6 +43,10 @@
           </svg>
           <span class="nav-label">Backing tracks</span>
         </button>
+        <button class="nav-item" data-view="download">
+          <span class="nav-icon material-icons" aria-hidden="true">&#xe2c4;</span>
+          <span class="nav-label">Download tabs</span>
+        </button>
         <button class="nav-item" data-view="modes">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"/>
@@ -83,6 +87,42 @@
           </header>
           <div id="backing-list" class="tab-list"></div>
           <div id="backing-empty-state" class="empty-state hidden">No backing tracks found.</div>
+        </section>
+
+        <section id="download-view" class="view hidden">
+          <header class="view-header">
+            <h1>Download tabs</h1>
+          </header>
+          <div class="download-content">
+            <form id="download-search-form" class="download-search">
+              <div class="download-field">
+                <label for="download-query">Free query</label>
+                <input
+                  type="text"
+                  id="download-query"
+                  class="download-input"
+                  placeholder="e.g. wasted years"
+                  autocomplete="off"
+                  required
+                />
+              </div>
+              <div class="download-field">
+                <label for="download-artist">Artist</label>
+                <input
+                  type="text"
+                  id="download-artist"
+                  class="download-input"
+                  placeholder="e.g. Iron Maiden"
+                  autocomplete="off"
+                />
+              </div>
+              <button type="submit" id="download-search-btn" class="download-search-btn">Search</button>
+            </form>
+            <div id="download-message" class="download-message hidden"></div>
+            <div id="download-list" class="download-list"></div>
+            <div id="download-empty" class="empty-state hidden">No results found.</div>
+          </div>
+          <button id="download-btn" class="download-fab hidden" disabled>Download</button>
         </section>
 
         <section id="modes-view" class="view hidden">

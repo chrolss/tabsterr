@@ -7,6 +7,14 @@
     navItems: document.querySelectorAll(".nav-item"),
     tabsView: document.getElementById("tabs-view"),
     backingView: document.getElementById("backing-view"),
+    downloadView: document.getElementById("download-view"),
+    downloadSearchForm: document.getElementById("download-search-form"),
+    downloadQuery: document.getElementById("download-query"),
+    downloadArtist: document.getElementById("download-artist"),
+    downloadMessage: document.getElementById("download-message"),
+    downloadList: document.getElementById("download-list"),
+    downloadEmpty: document.getElementById("download-empty"),
+    downloadBtn: document.getElementById("download-btn"),
     playerView: document.getElementById("player-view"),
     tabList: document.getElementById("tab-list"),
     emptyState: document.getElementById("empty-state"),
@@ -54,6 +62,7 @@
   let mutedTracks = new Set();
   let playerMode = "tab"; // "tab" | "backing"
   let backTarget = "tabs"; // where the back button goes
+  let expandedArtists = new Set();
 
   // Navigation
   function setControlMode(mode) {
@@ -63,6 +72,7 @@
   function showView(viewName) {
     els.tabsView.classList.add("hidden");
     els.backingView.classList.add("hidden");
+    els.downloadView.classList.add("hidden");
     els.modesView.classList.add("hidden");
     els.settingsView.classList.add("hidden");
     els.playerView.classList.add("hidden");
@@ -79,6 +89,9 @@
     } else if (viewName === "backing") {
       els.backingView.classList.remove("hidden");
       document.querySelector('[data-view="backing"]').classList.add("active");
+    } else if (viewName === "download") {
+      els.downloadView.classList.remove("hidden");
+      document.querySelector('[data-view="download"]').classList.add("active");
     } else if (viewName === "modes") {
       els.modesView.classList.remove("hidden");
       els.sidepane.classList.add("hidden");
@@ -132,6 +145,9 @@
       } else if (view === "backing") {
         resetPlayer();
         showView("backing");
+      } else if (view === "download") {
+        resetPlayer();
+        showView("download");
       } else if (view === "modes") {
         resetPlayer();
         showView("modes");
@@ -211,7 +227,26 @@
     }
   }
 
-  function renderTabList(list) {
+  function groupTabsByArtist(list) {
+    const map = new Map();
+    for (const tab of list) {
+      const artist = (tab.artist || "").trim() || "Unknown";
+      if (!map.has(artist)) map.set(artist, []);
+      map.get(artist).push(tab);
+    }
+    const groups = [...map.entries()].map(([artist, songs]) => ({
+      artist,
+      songs: songs.sort((a, b) =>
+        (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" })
+      ),
+    }));
+    groups.sort((a, b) =>
+      a.artist.localeCompare(b.artist, undefined, { sensitivity: "base" })
+    );
+    return groups;
+  }
+
+  function renderTabList(list, opts = {}) {
     els.tabList.innerHTML = "";
     if (list.length === 0) {
       els.emptyState.classList.remove("hidden");
@@ -219,15 +254,58 @@
     }
     els.emptyState.classList.add("hidden");
 
-    list.forEach((tab) => {
-      const card = document.createElement("div");
-      card.className = "tab-card";
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "tab-card-name";
-      nameSpan.textContent = tab.displayName;
-      card.appendChild(nameSpan);
-      card.addEventListener("click", () => loadTab(tab));
-      els.tabList.appendChild(card);
+    const groups = groupTabsByArtist(list);
+    const autoExpand = opts.autoExpand || false;
+
+    groups.forEach((group) => {
+      const artistRow = document.createElement("div");
+      artistRow.className = "artist-row";
+
+      const toggle = document.createElement("span");
+      toggle.className = "artist-toggle";
+      toggle.textContent = "+";
+
+      const name = document.createElement("span");
+      name.className = "artist-name";
+      name.textContent = group.artist;
+
+      artistRow.appendChild(toggle);
+      artistRow.appendChild(name);
+
+      const songList = document.createElement("div");
+      songList.className = "artist-songs hidden";
+
+      if (autoExpand || expandedArtists.has(group.artist)) {
+        toggle.textContent = "−";
+        songList.classList.remove("hidden");
+      }
+
+      artistRow.addEventListener("click", () => {
+        const isOpen = !songList.classList.contains("hidden");
+        if (isOpen) {
+          songList.classList.add("hidden");
+          toggle.textContent = "+";
+          expandedArtists.delete(group.artist);
+        } else {
+          songList.classList.remove("hidden");
+          toggle.textContent = "−";
+          expandedArtists.add(group.artist);
+        }
+      });
+
+      group.songs.forEach((tab) => {
+        const card = document.createElement("div");
+        card.className = "tab-card";
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "tab-card-name";
+        nameSpan.textContent = tab.title;
+        card.appendChild(nameSpan);
+        card.addEventListener("click", () => loadTab(tab));
+        songList.appendChild(card);
+      });
+
+      els.tabList.appendChild(artistRow);
+      els.tabList.appendChild(songList);
     });
   }
 
@@ -238,7 +316,7 @@
       (tab.artist || "").toLowerCase().includes(query) ||
       (tab.title || "").toLowerCase().includes(query)
     );
-    renderTabList(filtered);
+    renderTabList(filtered, { autoExpand: !!query });
   });
 
   // Backing tracks
@@ -273,6 +351,122 @@
       els.backingList.appendChild(card);
     });
   }
+
+  // Download tabs
+  let downloadResults = [];
+  let selectedDownloadIndex = null;
+
+  function showDownloadMessage(text, isError) {
+    els.downloadMessage.textContent = text;
+    els.downloadMessage.classList.toggle("error", !!isError);
+    els.downloadMessage.classList.remove("hidden");
+  }
+
+  function hideDownloadMessage() {
+    els.downloadMessage.classList.add("hidden");
+  }
+
+  function renderDownloadResults(results) {
+    els.downloadList.innerHTML = "";
+    selectedDownloadIndex = null;
+    els.downloadBtn.classList.add("hidden");
+    els.downloadBtn.disabled = true;
+    if (!results.length) {
+      els.downloadEmpty.classList.remove("hidden");
+      return;
+    }
+    els.downloadEmpty.classList.add("hidden");
+
+    results.forEach((r, i) => {
+      const row = document.createElement("label");
+      row.className = "download-item";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "download-check";
+      const info = document.createElement("span");
+      info.className = "download-item-info";
+      const version = r.version ? ` (version ${r.version})` : "";
+      info.textContent = `${r.song}${version} — ${r.artist}`;
+      const url = document.createElement("span");
+      url.className = "download-item-url";
+      url.textContent = r.url;
+      row.appendChild(cb);
+      row.appendChild(info);
+      row.appendChild(url);
+      cb.addEventListener("change", () => {
+        if (cb.checked) {
+          const boxes = els.downloadList.querySelectorAll(".download-check");
+          boxes.forEach((other, j) => {
+            if (j !== i) other.checked = false;
+          });
+          selectedDownloadIndex = i;
+          els.downloadBtn.disabled = false;
+        } else if (selectedDownloadIndex === i) {
+          selectedDownloadIndex = null;
+          els.downloadBtn.disabled = true;
+        }
+      });
+      els.downloadList.appendChild(row);
+    });
+  }
+
+  async function handleDownloadSearch(e) {
+    e.preventDefault();
+    const query = els.downloadQuery.value.trim();
+    if (!query) return;
+    hideDownloadMessage();
+    els.downloadList.innerHTML = "";
+    els.downloadEmpty.classList.add("hidden");
+    setOverlay(true, "Searching...");
+    try {
+      const res = await fetch("/api/guitarlesson/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, artist: els.downloadArtist.value.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Search failed.");
+      downloadResults = data.results || [];
+      renderDownloadResults(downloadResults);
+      if (downloadResults.length) {
+        els.downloadBtn.classList.remove("hidden");
+      }
+    } catch (err) {
+      showDownloadMessage(err.message, true);
+    } finally {
+      setOverlay(false);
+    }
+  }
+
+  async function handleDownload() {
+    if (selectedDownloadIndex === null) return;
+    const result = downloadResults[selectedDownloadIndex];
+    els.downloadBtn.disabled = true;
+    setOverlay(true, "Downloading...");
+    try {
+      const res = await fetch("/api/guitarlesson/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: result.url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Download failed.");
+      showDownloadMessage(
+        data.existing
+          ? `Already downloaded: ${data.fileName}`
+          : `Saved ${data.fileName} to tabs/.`
+      );
+      loadTabs();
+    } catch (err) {
+      showDownloadMessage(err.message, true);
+    } finally {
+      setOverlay(false);
+      els.downloadBtn.disabled = false;
+    }
+  }
+
+  els.downloadSearchForm.addEventListener("submit", handleDownloadSearch);
+  els.downloadBtn.addEventListener("click", handleDownload);
 
   function formatTime(seconds) {
     if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
@@ -331,9 +525,14 @@
   });
 
   // Player
-  function setOverlay(show) {
-    if (show) els.overlay.classList.remove("hidden");
-    else els.overlay.classList.add("hidden");
+  function setOverlay(show, text) {
+    if (show) {
+      const content = els.overlay.querySelector(".overlay-content");
+      if (content) content.textContent = text || "Loading tab...";
+      els.overlay.classList.remove("hidden");
+    } else {
+      els.overlay.classList.add("hidden");
+    }
   }
 
   function loadTab(tab) {
