@@ -890,6 +890,31 @@
     renderFretboard();
   });
 
+  // iOS: Safari can keep a stale 100dvh after rotation. Re-apply the visual
+  // viewport height so the shell never comes up clipped or with a gap.
+  (function syncViewportHeight() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    let timer = null;
+    const apply = () => {
+      const vv = window.visualViewport;
+      if (vv && vv.height > 0) {
+        app.style.height = vv.height + 'px';
+      }
+    };
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(apply, 300);
+    };
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', apply);
+      window.visualViewport.addEventListener('scroll', apply);
+    }
+    window.addEventListener('resize', schedule);
+    window.addEventListener('orientationchange', schedule);
+    apply();
+  })();
+
   // Init
   loadTheme();
   loadTabs();

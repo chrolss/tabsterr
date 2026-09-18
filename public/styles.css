@@ -67,8 +67,11 @@ body {
   display: flex;
   height: 100vh;
   height: 100dvh;
-  width: 100vw;
-  width: 100dvw;
+  width: 100%;
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
 }
 
 .content {
@@ -89,7 +92,6 @@ body {
   display: flex;
   flex-direction: column;
   z-index: 10;
-  padding-left: env(safe-area-inset-left);
 }
 
 .sidepane.hidden {
@@ -173,7 +175,6 @@ body {
   min-width: 0;
   min-height: 0;
   position: relative;
-  padding-right: env(safe-area-inset-right);
 }
 
 .view {
