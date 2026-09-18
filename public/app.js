@@ -890,6 +890,25 @@
     renderFretboard();
   });
 
+  // iOS: Safari can leave env(safe-area-inset-*) stale after rotation. Force
+  // a reflow so the shell re-pads instead of sliding under the notch.
+  (function syncViewportHeight() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    let timer = null;
+    const reflow = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        window.scrollTo(0, 0);
+        app.style.paddingTop = '0px';
+        app.offsetHeight;
+        app.style.paddingTop = '';
+      }, 250);
+    };
+    window.addEventListener('resize', reflow);
+    window.addEventListener('orientationchange', reflow);
+  })();
+
   // Init
   loadTheme();
   loadTabs();
