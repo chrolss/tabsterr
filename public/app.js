@@ -890,29 +890,23 @@
     renderFretboard();
   });
 
-  // iOS: Safari can keep a stale 100dvh after rotation. Re-apply the visual
-  // viewport height so the shell never comes up clipped or with a gap.
+  // iOS: Safari can leave env(safe-area-inset-*) stale after rotation. Force
+  // a reflow so the shell re-pads instead of sliding under the notch.
   (function syncViewportHeight() {
     const app = document.getElementById('app');
     if (!app) return;
     let timer = null;
-    const apply = () => {
-      const vv = window.visualViewport;
-      if (vv && vv.height > 0) {
-        app.style.height = vv.height + 'px';
-      }
-    };
-    const schedule = () => {
+    const reflow = () => {
       clearTimeout(timer);
-      timer = setTimeout(apply, 300);
+      timer = setTimeout(() => {
+        window.scrollTo(0, 0);
+        app.style.paddingTop = '0px';
+        app.offsetHeight;
+        app.style.paddingTop = '';
+      }, 250);
     };
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', apply);
-      window.visualViewport.addEventListener('scroll', apply);
-    }
-    window.addEventListener('resize', schedule);
-    window.addEventListener('orientationchange', schedule);
-    apply();
+    window.addEventListener('resize', reflow);
+    window.addEventListener('orientationchange', reflow);
   })();
 
   // Init
