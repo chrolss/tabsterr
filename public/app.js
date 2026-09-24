@@ -27,6 +27,17 @@
     modesRoot: document.getElementById("modes-root"),
     modesList: document.getElementById("modes-list"),
     fretboard: document.getElementById("fretboard"),
+    modesBoard: document.querySelector(".modes-board"),
+    metronomeView: document.getElementById("metronome-view"),
+    metronomePage: document.getElementById("metronome-page"),
+    metronomeToggle: document.getElementById("metronome-toggle"),
+    metronomePanel: document.getElementById("metronome-panel"),
+    metronomeClose: document.getElementById("metronome-close"),
+    metronomeTempo: document.getElementById("metronome-tempo"),
+    metronomeTempoValue: document.getElementById("metronome-tempo-value"),
+    metronomeMinus: document.getElementById("metronome-minus"),
+    metronomePlus: document.getElementById("metronome-plus"),
+    metronomePlay: document.getElementById("metronome-play"),
     settingsView: document.getElementById("settings-view"),
     themeSelect: document.getElementById("theme-select"),
     backButton: document.getElementById("back-button"),
@@ -64,6 +75,17 @@
   let backTarget = "tabs"; // where the back button goes
   let expandedArtists = new Set();
 
+  // Metronome state
+  const METRONOME_MIN = 40;
+  const METRONOME_MAX = 240;
+  const METRONOME_DEFAULT = 120;
+  let metroTempo = METRONOME_DEFAULT;
+  let metroPlaying = false;
+  let metroAudioCtx = null;
+  let metroTimer = null;
+  let metroNextTime = 0;
+  let metroBeat = 0;
+
   // Navigation
   function setControlMode(mode) {
     playerMode = mode;
@@ -76,9 +98,22 @@
     els.modesView.classList.add("hidden");
     els.settingsView.classList.add("hidden");
     els.playerView.classList.add("hidden");
+    els.metronomeView.classList.add("hidden");
     els.tabControls.classList.add("hidden");
     els.backingControls.classList.add("hidden");
     els.tracksPanel.classList.add("hidden");
+    if (viewName === "metronome") {
+      els.metronomePage.appendChild(els.metronomePanel);
+      els.metronomePanel.classList.add("metronome-panel--page");
+      els.metronomePanel.classList.remove("hidden");
+    } else {
+      els.modesBoard.appendChild(els.metronomePanel);
+      els.metronomePanel.classList.remove("metronome-panel--page");
+      els.metronomePanel.classList.add("hidden");
+      if (viewName !== "modes") {
+        stopMetronome();
+      }
+    }
     els.sidepane.classList.remove("hidden");
 
     els.navItems.forEach((item) => item.classList.remove("active"));
@@ -97,6 +132,9 @@
       els.sidepane.classList.add("hidden");
       document.querySelector('[data-view="modes"]').classList.add("active");
       renderModes();
+    } else if (viewName === "metronome") {
+      els.metronomeView.classList.remove("hidden");
+      document.querySelector('[data-view="metronome"]').classList.add("active");
     } else if (viewName === "settings") {
       els.settingsView.classList.remove("hidden");
       document.querySelector('[data-view="settings"]').classList.add("active");
@@ -151,6 +189,9 @@
       } else if (view === "modes") {
         resetPlayer();
         showView("modes");
+      } else if (view === "metronome") {
+        resetPlayer();
+        showView("metronome");
       } else if (view === "settings") {
         resetPlayer();
         showView("settings");
@@ -888,6 +929,145 @@
     els.modesList.querySelectorAll('.mode-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     renderFretboard();
+  });
+
+  // Metronome
+  function metroClick(time, accent) {
+    if (!metroAudioCtx) return;
+    const osc = metroAudioCtx.createOscillator();
+    const gain = metroAudioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(metroAudioCtx.destination);
+    osc.type = 'square';
+    osc.frequency.value = accent ? 1568 : 880;
+    const peak = accent ? 0.9 : 0.6;
+    gain.gain.setValueAtTime(peak, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+    osc.start(time);
+    osc.stop(time + 0.06);
+  }
+
+  function metroSchedule() {
+    if (!metroAudioCtx || !metroPlaying) return;
+    const interval = 60 / metroTempo;
+    while (metroNextTime < metroAudioCtx.currentTime + 0.1) {
+      metroClick(metroNextTime, metroBeat % 4 === 0);
+      metroNextTime += interval;
+      metroBeat++;
+    }
+  }
+
+  function updateMetronomePlayButton() {
+    els.metronomePlay.classList.toggle('playing', metroPlaying);
+    els.metronomePlay.setAttribute('aria-label', metroPlaying ? 'Stop' : 'Start');
+  }
+
+  function updateTempoDisplay() {
+    els.metronomeTempoValue.textContent = metroTempo;
+  }
+
+  function stopMetronome() {
+    metroPlaying = false;
+    if (metroTimer) {
+      clearInterval(metroTimer);
+      metroTimer = null;
+    }
+    updateMetronomePlayButton();
+  }
+
+  function startMetronome() {
+    if (!metroAudioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      metroAudioCtx = new Ctx();
+    }
+    if (metroAudioCtx.state === 'suspended') {
+      metroAudioCtx.resume();
+    }
+    metroPlaying = true;
+    metroBeat = 0;
+    metroNextTime = metroAudioCtx.currentTime + 0.06;
+    metroTimer = setInterval(metroSchedule, 25);
+    updateMetronomePlayButton();
+  }
+
+  function toggleMetronome() {
+    if (metroPlaying) {
+      stopMetronome();
+    } else {
+      startMetronome();
+    }
+  }
+
+  function clampTempo(value) {
+    return Math.min(METRONOME_MAX, Math.max(METRONOME_MIN, value));
+  }
+
+  function commitTempo(value) {
+    const parsed = parseInt(value, 10);
+    if (!isNaN(parsed)) {
+      metroTempo = clampTempo(parsed);
+      updateTempoDisplay();
+    }
+  }
+
+  els.metronomeToggle.addEventListener('click', () => {
+    els.metronomePanel.classList.toggle('hidden');
+  });
+
+  els.metronomeClose.addEventListener('click', () => {
+    els.metronomePanel.classList.add('hidden');
+  });
+
+  els.metronomePlay.addEventListener('click', toggleMetronome);
+
+  els.metronomeMinus.addEventListener('click', () => {
+    metroTempo = clampTempo(metroTempo - 10);
+    updateTempoDisplay();
+  });
+
+  els.metronomePlus.addEventListener('click', () => {
+    metroTempo = clampTempo(metroTempo + 10);
+    updateTempoDisplay();
+  });
+
+  els.metronomeTempo.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'metronome-tempo-input';
+    input.value = metroTempo;
+    input.min = METRONOME_MIN;
+    input.max = METRONOME_MAX;
+    input.setAttribute('aria-label', 'Tempo in beats per minute');
+    let done = false;
+    const commit = () => {
+      if (done) return;
+      done = true;
+      commitTempo(input.value);
+      input.remove();
+      els.metronomeTempo.classList.remove('hidden');
+    };
+    const cancel = () => {
+      if (done) return;
+      done = true;
+      input.remove();
+      els.metronomeTempo.classList.remove('hidden');
+    };
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') {
+        commit();
+      } else if (e.key === 'Escape') {
+        cancel();
+      }
+    });
+    input.addEventListener('blur', () => {
+      if (input.isConnected) commit();
+    });
+    els.metronomeTempo.classList.add('hidden');
+    els.metronomeTempo.insertAdjacentElement('afterend', input);
+    input.focus();
+    input.select();
   });
 
   // iOS: Safari can leave env(safe-area-inset-*) stale after rotation. Force

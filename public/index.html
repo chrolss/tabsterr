@@ -56,6 +56,17 @@
           </svg>
           <span class="nav-label">Modes</span>
         </button>
+        <button class="nav-item" data-view="metronome">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m9 9 4-7 4 7"/>
+            <path d="M13 11.5V3"/>
+            <path d="M7 21h10"/>
+            <path d="m4 18 2-3m-2 3h4"/>
+            <path d="m20 18-2-3m2 3h-4"/>
+            <path d="M8.5 21 12 11l3.5 10H8.5z"/>
+          </svg>
+          <span class="nav-label">Metronome</span>
+        </button>
         <button class="nav-item" data-view="settings">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3"/>
@@ -163,8 +174,47 @@
             </aside>
             <main class="modes-board">
               <div id="fretboard" class="fretboard"></div>
+              <button id="metronome-toggle" class="metronome-fab" aria-label="Metronome">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m9 9 4-7 4 7"/>
+                  <path d="M13 11.5V3"/>
+                  <path d="M7 21h10"/>
+                  <path d="m4 18 2-3m-2 3h4"/>
+                  <path d="m20 18-2-3m2 3h-4"/>
+                  <path d="M8.5 21 12 11l3.5 10H8.5z"/>
+                </svg>
+              </button>
+              <div id="metronome-panel" class="metronome-panel hidden">
+                <div class="metronome-panel-header">
+                  <strong>Metronome</strong>
+                  <button id="metronome-close" class="btn-icon" aria-label="Close">✕</button>
+                </div>
+                <button id="metronome-tempo" class="metronome-tempo-btn" aria-label="Set tempo">
+                  <span id="metronome-tempo-value">120</span>
+                  <span class="metronome-unit">bpm</span>
+                </button>
+                <div class="metronome-controls">
+                  <button id="metronome-minus" class="metronome-btn" aria-label="Decrease tempo">−</button>
+                  <button id="metronome-play" class="metronome-btn metronome-play" aria-label="Start">
+                    <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
+                    </svg>
+                  </button>
+                  <button id="metronome-plus" class="metronome-btn" aria-label="Increase tempo">+</button>
+                </div>
+              </div>
             </main>
           </div>
+        </section>
+
+        <section id="metronome-view" class="view hidden">
+          <header class="view-header">
+            <h1>Metronome</h1>
+          </header>
+          <div id="metronome-page" class="metronome-page"></div>
         </section>
 
         <section id="settings-view" class="view hidden">

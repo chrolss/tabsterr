@@ -515,6 +515,7 @@ body {
   padding: 24px;
   overflow: auto;
   background: var(--surface);
+  position: relative;
 }
 
 .fretboard {
@@ -607,6 +608,203 @@ body {
   box-shadow: 0 0 0 3px var(--fretboard-root-ring), 0 0 0 5px var(--fretboard-root-bg);
 }
 
+/* Metronome */
+.metronome-fab {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.metronome-fab:hover {
+  background: var(--primary-hover);
+}
+
+.metronome-fab:active {
+  transform: scale(0.95);
+}
+
+.metronome-fab svg {
+  width: 26px;
+  height: 26px;
+}
+
+.metronome-panel {
+  position: absolute;
+  right: 24px;
+  bottom: 88px;
+  width: 220px;
+  max-width: calc(100vw - 24px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+}
+
+.metronome-panel.hidden {
+  display: none;
+}
+
+.metronome-page {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: auto;
+  background: var(--surface);
+}
+
+.metronome-panel--page {
+  position: static;
+  right: auto;
+  bottom: auto;
+  width: 260px;
+  max-width: 100%;
+}
+
+.metronome-panel--page .metronome-panel-header {
+  display: none;
+}
+
+.metronome-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.metronome-panel-header .btn-icon {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+.metronome-tempo-btn {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.metronome-tempo-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.metronome-tempo-btn .metronome-unit {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.metronome-tempo-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+}
+
+.metronome-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.metronome-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.metronome-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.metronome-btn:active {
+  transform: scale(0.96);
+}
+
+.metronome-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.metronome-play {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.metronome-play:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.metronome-play .icon-pause {
+  display: none;
+}
+
+.metronome-play.playing .icon-play {
+  display: none;
+}
+
+.metronome-play.playing .icon-pause {
+  display: block;
+}
+
 @media (max-width: 640px) {
   .modes-layout {
     flex-direction: column;
@@ -657,6 +855,19 @@ body {
     width: 32px;
     height: 32px;
     font-size: 0.7rem;
+  }
+
+  .metronome-fab {
+    right: 16px;
+    bottom: 16px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .metronome-panel {
+    right: 16px;
+    bottom: 76px;
+    width: 200px;
   }
 }
 
