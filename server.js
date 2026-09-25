@@ -164,6 +164,33 @@ app.get('/api/tabs', (req, res) => {
   });
 });
 
+app.delete('/api/tabs/:name', (req, res) => {
+  const requested = String(req.params.name || '');
+  if (!requested) {
+    return res.status(400).json({ error: 'A tab name is required.' });
+  }
+
+  const fileName = path.basename(requested);
+  if (!SUPPORTED_EXTENSIONS.has(path.extname(fileName).toLowerCase())) {
+    return res.status(400).json({ error: 'Unsupported tab file type.' });
+  }
+
+  const target = path.resolve(TABS_DIR, fileName);
+  if (target !== path.join(TABS_DIR, fileName)) {
+    return res.status(400).json({ error: 'Invalid tab name.' });
+  }
+
+  fs.unlink(target, (err) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({ error: 'Tab not found.' });
+      }
+      return res.status(500).json({ error: 'Unable to delete tab.' });
+    }
+    res.status(204).end();
+  });
+});
+
 app.post('/api/guitarlesson/search', async (req, res) => {
   const query = (req.body.query || '').trim();
   if (!query) {

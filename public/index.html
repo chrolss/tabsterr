@@ -230,6 +230,14 @@
               </select>
               <p class="settings-hint">Choose the app appearance.</p>
             </div>
+            <div class="settings-group">
+              <label class="settings-label" for="soundfont-select">Sound quality</label>
+              <select id="soundfont-select" class="settings-select">
+                <option value="original">Original</option>
+                <option value="better">Better (FluidR3)</option>
+              </select>
+              <p class="settings-hint">Better sounds more realistic but adds a larger download (~15 MB).</p>
+            </div>
           </div>
         </section>
 
@@ -270,6 +278,10 @@
           <button id="speed-up" class="control-btn speed-btn" aria-label="Speed up">+</button>
         </div>
         <div class="controls-right">
+          <select id="soundfont-quick" class="soundfont-quick" aria-label="Sound quality" title="Sound quality">
+            <option value="original">Original</option>
+            <option value="better">Better</option>
+          </select>
           <button id="loop-button" class="control-btn" aria-label="Loop section">↻</button>
           <button id="tracks-button" class="control-btn" aria-label="Tracks">Tracks</button>
         </div>
@@ -307,6 +319,10 @@
       <button id="close-tracks" class="btn-icon" aria-label="Close">✕</button>
     </div>
     <div id="tracks-list" class="tracks-list"></div>
+  </div>
+
+  <div id="tab-menu" class="tab-card-menu hidden">
+    <button id="tab-menu-delete" class="tab-card-menu-item">Delete</button>
   </div>
 
   <div id="overlay" class="overlay hidden">

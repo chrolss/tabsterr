@@ -1,6 +1,10 @@
 (function () {
   const SPEEDS = [0.25, 0.5, 0.75, 1];
-  const SOUND_FONT = "/soundfont/sonivox.sf2";
+  const SOUND_FONTS = {
+    original: "/soundfont/sonivox.sf2",
+    better: "/soundfont/FluidR3Mono_GM.sf3",
+  };
+  const DEFAULT_SOUND_FONT = "original";
 
   const els = {
     sidepane: document.getElementById("sidepane"),
@@ -40,6 +44,8 @@
     metronomePlay: document.getElementById("metronome-play"),
     settingsView: document.getElementById("settings-view"),
     themeSelect: document.getElementById("theme-select"),
+    soundfontSelect: document.getElementById("soundfont-select"),
+    soundfontQuick: document.getElementById("soundfont-quick"),
     backButton: document.getElementById("back-button"),
     songTitle: document.getElementById("song-title"),
     songArtist: document.getElementById("song-artist"),
@@ -59,6 +65,8 @@
     tracksPanel: document.getElementById("tracks-panel"),
     closeTracks: document.getElementById("close-tracks"),
     tracksList: document.getElementById("tracks-list"),
+    tabMenu: document.getElementById("tab-menu"),
+    tabMenuDelete: document.getElementById("tab-menu-delete"),
     progressBar: document.getElementById("progress-bar"),
     currentTime: document.getElementById("current-time"),
     duration: document.getElementById("duration"),
@@ -69,6 +77,7 @@
   let tabs = [];
   let backingTracks = [];
   let api = null;
+  let currentTab = null;
   let speedIndex = 3; // default 1x
   let mutedTracks = new Set();
   let playerMode = "tab"; // "tab" | "backing"
@@ -255,12 +264,67 @@
     });
   }
 
+  // Sound quality
+  function getSoundFontName() {
+    let name = DEFAULT_SOUND_FONT;
+    try {
+      name = localStorage.getItem("tabsterr-soundfont") || DEFAULT_SOUND_FONT;
+    } catch {
+      // ignore storage errors
+    }
+    if (!SOUND_FONTS[name]) {
+      name = DEFAULT_SOUND_FONT;
+    }
+    return name;
+  }
+
+  function getSoundFont() {
+    return SOUND_FONTS[getSoundFontName()];
+  }
+
+  function applySoundFont(name) {
+    if (!SOUND_FONTS[name]) {
+      name = DEFAULT_SOUND_FONT;
+    }
+    if (els.soundfontSelect) {
+      els.soundfontSelect.value = name;
+    }
+    if (els.soundfontQuick) {
+      els.soundfontQuick.value = name;
+    }
+    try {
+      localStorage.setItem("tabsterr-soundfont", name);
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function handleSoundFontChange(value) {
+    applySoundFont(value);
+    if (currentTab) {
+      resetPlayer();
+      loadTab(currentTab);
+    }
+  }
+
+  if (els.soundfontSelect) {
+    els.soundfontSelect.addEventListener("change", (e) => {
+      handleSoundFontChange(e.target.value);
+    });
+  }
+
+  if (els.soundfontQuick) {
+    els.soundfontQuick.addEventListener("change", (e) => {
+      handleSoundFontChange(e.target.value);
+    });
+  }
+
   // Tab list
   async function loadTabs() {
     try {
       const res = await fetch("/api/tabs");
       tabs = await res.json();
-      renderTabList(tabs);
+      applyTabSearch();
     } catch (err) {
       console.error("Failed to load tabs", err);
       els.tabList.innerHTML =
@@ -310,8 +374,13 @@
       name.className = "artist-name";
       name.textContent = group.artist;
 
+      const count = document.createElement("span");
+      count.className = "artist-count";
+      count.textContent = `(${group.songs.length})`;
+
       artistRow.appendChild(toggle);
       artistRow.appendChild(name);
+      artistRow.appendChild(count);
 
       const songList = document.createElement("div");
       songList.className = "artist-songs hidden";
@@ -340,7 +409,18 @@
         const nameSpan = document.createElement("span");
         nameSpan.className = "tab-card-name";
         nameSpan.textContent = tab.title;
+
+        const kebab = document.createElement("button");
+        kebab.className = "tab-card-kebab";
+        kebab.textContent = "⋯";
+        kebab.setAttribute("aria-label", `Options for ${tab.title}`);
+        kebab.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openTabMenu(kebab, tab);
+        });
+
         card.appendChild(nameSpan);
+        card.appendChild(kebab);
         card.addEventListener("click", () => loadTab(tab));
         songList.appendChild(card);
       });
@@ -350,14 +430,79 @@
     });
   }
 
-  els.searchInput.addEventListener("input", (e) => {
-    const query = e.target.value.trim().toLowerCase();
+  // Tab card kebab menu
+  let activeTabMenuTab = null;
+
+  function openTabMenu(kebabBtn, tab) {
+    closeTabMenu();
+    activeTabMenuTab = tab;
+    els.tabMenu.classList.remove("hidden");
+    const rect = kebabBtn.getBoundingClientRect();
+    const menuWidth = els.tabMenu.offsetWidth;
+    const menuHeight = els.tabMenu.offsetHeight;
+    let left = Math.min(rect.right, window.innerWidth - menuWidth - 8);
+    let top = rect.bottom + 4;
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - 4);
+    }
+    els.tabMenu.style.left = `${left}px`;
+    els.tabMenu.style.top = `${top}px`;
+  }
+
+  function closeTabMenu() {
+    if (!els.tabMenu.classList.contains("hidden")) {
+      els.tabMenu.classList.add("hidden");
+    }
+    activeTabMenuTab = null;
+  }
+
+  els.tabMenu.addEventListener("click", (e) => e.stopPropagation());
+
+  els.tabMenuDelete.addEventListener("click", async () => {
+    const tab = activeTabMenuTab;
+    closeTabMenu();
+    if (!tab) return;
+    if (!window.confirm(`Delete "${tab.displayName}"?`)) return;
+    try {
+      const res = await fetch(`/api/tabs/${encodeURIComponent(tab.name)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Delete failed.");
+      }
+      if (currentTab && currentTab.name === tab.name) {
+        resetPlayer();
+      }
+      expandedArtists.delete(tab.artist);
+      loadTabs();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  });
+
+  document.addEventListener("click", () => closeTabMenu());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeTabMenu();
+  });
+  els.tabList.addEventListener("scroll", () => closeTabMenu());
+
+  function applyTabSearch() {
+    const query = els.searchInput.value.trim().toLowerCase();
+    if (!query) {
+      renderTabList(tabs);
+      return;
+    }
     const filtered = tabs.filter((tab) =>
       (tab.displayName || "").toLowerCase().includes(query) ||
       (tab.artist || "").toLowerCase().includes(query) ||
       (tab.title || "").toLowerCase().includes(query)
     );
-    renderTabList(filtered, { autoExpand: !!query });
+    renderTabList(filtered, { autoExpand: true });
+  }
+
+  els.searchInput.addEventListener("input", () => {
+    applyTabSearch();
   });
 
   // Backing tracks
@@ -583,6 +728,7 @@
     setOverlay(true);
     showView("player");
     mutedTracks.clear();
+    currentTab = tab;
 
     els.songTitle.textContent = tab.name;
     els.songArtist.textContent = "";
@@ -592,7 +738,7 @@
       file: tab.path,
       player: {
         enablePlayer: true,
-        soundFont: SOUND_FONT,
+        soundFont: getSoundFont(),
         enableUserInteraction: true,
         scrollElement: els.alphaTabContainer.parentElement,
         scrollOffsetY: -50,
@@ -1091,6 +1237,7 @@
 
   // Init
   loadTheme();
+  applySoundFont(getSoundFontName());
   loadTabs();
   loadBackingTracks();
   setControlMode("tab");

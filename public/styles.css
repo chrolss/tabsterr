@@ -282,6 +282,14 @@ body {
   word-break: break-word;
 }
 
+.artist-count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .artist-songs {
   margin: 0 0 10px;
   padding-left: 22px;
@@ -322,6 +330,64 @@ body {
 .tab-card-name {
   font-weight: 600;
   word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tab-card-kebab {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab-card-kebab:hover {
+  background: var(--primary-light);
+  color: var(--text);
+}
+
+/* Tab card dropdown menu */
+.tab-card-menu {
+  position: fixed;
+  z-index: 150;
+  min-width: 140px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-card-menu.hidden {
+  display: none;
+}
+
+.tab-card-menu-item {
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #dc2626;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tab-card-menu-item:hover {
+  background: rgba(220, 38, 38, 0.1);
 }
 
 .empty-state {
@@ -984,6 +1050,27 @@ body {
   padding: 0 10px;
 }
 
+.soundfont-quick {
+  height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  max-width: 110px;
+}
+
+.soundfont-quick:hover {
+  border-color: var(--primary);
+}
+
+.soundfont-quick:focus {
+  border-color: var(--primary);
+}
+
 .backing-progress {
   flex: 1 1 auto;
   justify-content: center;
@@ -1402,6 +1489,13 @@ body {
     height: 36px;
     padding: 0 10px;
     font-size: 0.9rem;
+  }
+
+  .soundfont-quick {
+    height: 36px;
+    padding: 0 6px;
+    font-size: 0.85rem;
+    max-width: 96px;
   }
 
   .player-controls {
