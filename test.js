@@ -77,21 +77,23 @@ async function run() {
     );
     console.log(`SVG elements rendered: ${svgCount}`);
 
-    const controlsInfo = await page.evaluate(() => {
-      const el = document.getElementById('player-controls');
-      if (!el) return null;
-      const rect = el.getBoundingClientRect();
+    const headerInfo = await page.evaluate(() => {
+      const header = document.querySelector('.player-header');
+      const play = document.getElementById('play-button');
+      const tracks = document.getElementById('tracks-button');
+      const scroll = document.querySelector('.player-scroll-area');
+      if (!header) return null;
       return {
-        hidden: el.classList.contains('hidden'),
-        top: rect.top,
-        left: rect.left,
-        bottom: rect.bottom,
-        right: rect.right,
-        width: rect.width,
-        height: rect.height,
+        footerGone: !document.getElementById('player-controls'),
+        playInHeader: !!play && header.contains(play),
+        tracksInHeader: !!tracks && header.contains(tracks),
+        hasMenuButton: !!document.getElementById('player-menu-button'),
+        headerHeight: header.getBoundingClientRect().height,
+        scrollBottom: scroll.getBoundingClientRect().bottom,
+        viewportHeight: window.innerHeight,
       };
     });
-    console.log('Controls info:', controlsInfo);
+    console.log('Header info:', headerInfo);
 
     await page.screenshot({ path: path.join(__dirname, 'test-screenshot.png'), fullPage: false });
 
@@ -119,7 +121,9 @@ async function run() {
       console.log('First track muted:', isMuted);
     }
 
-    // Test speed down
+    // Test speed down (lives in the overflow menu)
+    await page.click('#player-menu-button');
+    await delay(200);
     await page.click('#speed-down');
     const speedText = await page.evaluate(() => document.getElementById('speed-value').textContent);
     console.log('Speed after down:', speedText);

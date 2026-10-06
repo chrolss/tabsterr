@@ -51,10 +51,11 @@
     songArtist: document.getElementById("song-artist"),
     alphaTabContainer: document.getElementById("alphaTab-container"),
     backingPdf: document.getElementById("backing-pdf"),
-    tabControls: document.getElementById("player-controls"),
+    playerHeader: document.getElementById("player-header"),
+    playerMenu: document.getElementById("player-menu"),
+    playerMenuButton: document.getElementById("player-menu-button"),
     backingControls: document.getElementById("backing-controls"),
     playButton: document.getElementById("play-button"),
-    stopButton: document.getElementById("stop-button"),
     backingPlayButton: document.getElementById("backing-play-button"),
     backingStopButton: document.getElementById("backing-stop-button"),
     speedDown: document.getElementById("speed-down"),
@@ -108,9 +109,10 @@
     els.settingsView.classList.add("hidden");
     els.playerView.classList.add("hidden");
     els.metronomeView.classList.add("hidden");
-    els.tabControls.classList.add("hidden");
     els.backingControls.classList.add("hidden");
     els.tracksPanel.classList.add("hidden");
+    els.playerMenu.classList.add("hidden");
+    els.playerMenuButton.setAttribute("aria-expanded", "false");
     if (viewName === "metronome") {
       els.metronomePage.appendChild(els.metronomePanel);
       els.metronomePanel.classList.add("metronome-panel--page");
@@ -150,11 +152,11 @@
     } else if (viewName === "player") {
       els.playerView.classList.remove("hidden");
       els.sidepane.classList.add("hidden");
+      els.playerHeader.classList.toggle("backing", playerMode === "backing");
       if (playerMode === "backing") {
         els.backingControls.classList.remove("hidden");
         document.querySelector('[data-view="backing"]').classList.add("active");
       } else {
-        els.tabControls.classList.remove("hidden");
         document.querySelector('[data-view="tabs"]').classList.add("active");
       }
     }
@@ -788,9 +790,14 @@
   }
 
   function updatePlayButton(isPlaying) {
-    const btn = playerMode === "backing" ? els.backingPlayButton : els.playButton;
+    const isBacking = playerMode === "backing";
+    const btn = isBacking ? els.backingPlayButton : els.playButton;
     btn.classList.toggle("playing", isPlaying);
-    btn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+    if (isBacking) {
+      btn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+    } else {
+      btn.setAttribute("aria-label", isPlaying ? "Stop" : "Start");
+    }
   }
 
   function updateSpeedDisplay() {
@@ -851,12 +858,25 @@
 
   els.playButton.addEventListener("click", () => {
     if (!api) return;
-    api.playPause();
+    if (els.playButton.classList.contains("playing")) {
+      api.stop();
+    } else {
+      api.play();
+    }
   });
 
-  els.stopButton.addEventListener("click", () => {
-    if (!api) return;
-    api.stop();
+  els.playerMenuButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    els.tracksPanel.classList.add("hidden");
+    const open = els.playerMenu.classList.toggle("hidden");
+    els.playerMenuButton.setAttribute("aria-expanded", String(!open));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (els.playerMenu.classList.contains("hidden")) return;
+    if (els.playerMenu.contains(e.target) || els.playerMenuButton.contains(e.target)) return;
+    els.playerMenu.classList.add("hidden");
+    els.playerMenuButton.setAttribute("aria-expanded", "false");
   });
 
   els.backingPlayButton.addEventListener("click", () => {
@@ -893,6 +913,8 @@
   });
 
   els.tracksButton.addEventListener("click", () => {
+    els.playerMenu.classList.add("hidden");
+    els.playerMenuButton.setAttribute("aria-expanded", "false");
     els.tracksPanel.classList.toggle("hidden");
   });
 

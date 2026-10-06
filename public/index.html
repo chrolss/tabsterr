@@ -242,11 +242,41 @@
         </section>
 
         <section id="player-view" class="view hidden">
-          <header class="player-header">
+          <header id="player-header" class="player-header">
             <button id="back-button" class="btn-icon" aria-label="Back">← Back</button>
+            <button id="tracks-button" class="btn-icon player-tracks-btn" aria-label="Tracks">Tracks</button>
             <div class="song-info">
               <span id="song-title" class="song-title"></span>
               <span id="song-artist" class="song-artist"></span>
+            </div>
+            <div class="player-actions">
+              <button id="play-button" class="control-btn play-btn header-play" aria-label="Start">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                <svg class="icon-stop" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <rect x="6" y="6" width="12" height="12" rx="1"/>
+                </svg>
+              </button>
+              <button id="player-menu-button" class="control-btn player-menu-btn" aria-label="More options" aria-haspopup="true" aria-expanded="false">⋯</button>
+            </div>
+            <div id="player-menu" class="player-menu hidden">
+              <div class="player-menu-row">
+                <span class="player-menu-label">Speed</span>
+                <div class="player-menu-speed">
+                  <button id="speed-down" class="control-btn speed-btn" aria-label="Slow down">−</button>
+                  <span id="speed-value" class="speed-value">1×</span>
+                  <button id="speed-up" class="control-btn speed-btn" aria-label="Speed up">+</button>
+                </div>
+              </div>
+              <div class="player-menu-row">
+                <span class="player-menu-label">Sound</span>
+                <select id="soundfont-quick" class="soundfont-quick" aria-label="Sound quality" title="Sound quality">
+                  <option value="original">Original</option>
+                  <option value="better">Better</option>
+                </select>
+              </div>
+              <button id="loop-button" class="player-menu-item" aria-label="Loop section">↻ Loop section</button>
             </div>
           </header>
           <div class="player-scroll-area">
@@ -255,37 +285,6 @@
           </div>
         </section>
       </main>
-
-      <footer id="player-controls" class="player-controls hidden">
-        <div class="controls-left">
-          <button id="play-button" class="control-btn play-btn" aria-label="Play">
-            <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-            <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
-            </svg>
-          </button>
-          <button id="stop-button" class="control-btn stop-btn" aria-label="Stop">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <rect x="6" y="6" width="12" height="12" rx="1"/>
-            </svg>
-          </button>
-        </div>
-        <div class="controls-center">
-          <button id="speed-down" class="control-btn speed-btn" aria-label="Slow down">−</button>
-          <span id="speed-value" class="speed-value">1×</span>
-          <button id="speed-up" class="control-btn speed-btn" aria-label="Speed up">+</button>
-        </div>
-        <div class="controls-right">
-          <select id="soundfont-quick" class="soundfont-quick" aria-label="Sound quality" title="Sound quality">
-            <option value="original">Original</option>
-            <option value="better">Better</option>
-          </select>
-          <button id="loop-button" class="control-btn" aria-label="Loop section">↻</button>
-          <button id="tracks-button" class="control-btn" aria-label="Tracks">Tracks</button>
-        </div>
-      </footer>
 
       <footer id="backing-controls" class="player-controls hidden">
         <div class="controls-left">
