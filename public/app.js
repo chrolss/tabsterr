@@ -1216,23 +1216,48 @@
     input.select();
   });
 
-  // iOS: Safari can leave env(safe-area-inset-*) stale after rotation. Force
-  // a reflow so the shell re-pads instead of sliding under the notch.
+  // iOS: the layout viewport (100% / 100vh) is unreliable, and
+  // env(safe-area-inset-*) goes stale after rotation. Drive the shell height
+  // from the visual viewport instead so it always reaches the real bottom.
   (function syncViewportHeight() {
-    const app = document.getElementById('app');
-    if (!app) return;
-    let timer = null;
-    const reflow = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        window.scrollTo(0, 0);
-        app.style.paddingTop = '0px';
-        app.offsetHeight;
-        app.style.paddingTop = '';
-      }, 250);
+    const root = document.documentElement;
+    let frame = null;
+    let notifying = false;
+
+    const apply = () => {
+      frame = null;
+      const vv = window.visualViewport;
+      const height = (vv && vv.height) || window.innerHeight;
+      if (height > 0) {
+        root.style.setProperty('--app-height', height + 'px');
+      }
+      // Let alphaTab relayout against the new container size. Guard the
+      // synthetic event so it doesn't feed back into our resize handler.
+      notifying = true;
+      window.dispatchEvent(new Event('resize'));
+      notifying = false;
     };
-    window.addEventListener('resize', reflow);
-    window.addEventListener('orientationchange', reflow);
+
+    const schedule = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(apply);
+    };
+
+    const onWindowResize = () => {
+      if (notifying) return;
+      schedule();
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', schedule);
+      window.visualViewport.addEventListener('scroll', schedule);
+    }
+    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('orientationchange', () => {
+      schedule();
+      setTimeout(schedule, 300);
+    });
+    schedule();
   })();
 
   // Init
