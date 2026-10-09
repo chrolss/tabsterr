@@ -46,6 +46,13 @@
     themeSelect: document.getElementById("theme-select"),
     soundfontSelect: document.getElementById("soundfont-select"),
     soundfontQuick: document.getElementById("soundfont-quick"),
+    songPlaylistInput: document.getElementById("song-playlist-input"),
+    learnView: document.getElementById("learn-view"),
+    learnSections: document.getElementById("learn-sections"),
+    videoOverlay: document.getElementById("video-overlay"),
+    videoOverlayTitle: document.getElementById("video-overlay-title"),
+    videoOverlayClose: document.getElementById("video-overlay-close"),
+    videoFrameWrap: document.getElementById("video-frame-wrap"),
     backButton: document.getElementById("back-button"),
     songTitle: document.getElementById("song-title"),
     songArtist: document.getElementById("song-artist"),
@@ -85,6 +92,15 @@
   let backTarget = "tabs"; // where the back button goes
   let expandedArtists = new Set();
 
+  // Learn state
+  const SONG_PLAYLIST_KEY = "tabsterr-song-playlist";
+  let songPlaylist = "";
+  let learnExpanded = false;
+  let learnLoading = false;
+  let learnError = "";
+  let learnPlaylist = null; // { title, videos }
+  let openVideoIndex = null;
+
   // Metronome state
   const METRONOME_MIN = 40;
   const METRONOME_MAX = 240;
@@ -104,6 +120,7 @@
   function showView(viewName) {
     els.tabsView.classList.add("hidden");
     els.backingView.classList.add("hidden");
+    els.learnView.classList.add("hidden");
     els.downloadView.classList.add("hidden");
     els.modesView.classList.add("hidden");
     els.settingsView.classList.add("hidden");
@@ -135,6 +152,10 @@
     } else if (viewName === "backing") {
       els.backingView.classList.remove("hidden");
       document.querySelector('[data-view="backing"]').classList.add("active");
+    } else if (viewName === "learn") {
+      els.learnView.classList.remove("hidden");
+      document.querySelector('[data-view="learn"]').classList.add("active");
+      renderLearn();
     } else if (viewName === "download") {
       els.downloadView.classList.remove("hidden");
       document.querySelector('[data-view="download"]').classList.add("active");
@@ -194,6 +215,9 @@
       } else if (view === "backing") {
         resetPlayer();
         showView("backing");
+      } else if (view === "learn") {
+        resetPlayer();
+        showView("learn");
       } else if (view === "download") {
         resetPlayer();
         showView("download");
@@ -655,6 +679,272 @@
 
   els.downloadSearchForm.addEventListener("submit", handleDownloadSearch);
   els.downloadBtn.addEventListener("click", handleDownload);
+
+  // Learn
+  function getSongPlaylist() {
+    try {
+      return localStorage.getItem(SONG_PLAYLIST_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function applySongPlaylist(value) {
+    songPlaylist = value.trim();
+    try {
+      if (songPlaylist) {
+        localStorage.setItem(SONG_PLAYLIST_KEY, songPlaylist);
+      } else {
+        localStorage.removeItem(SONG_PLAYLIST_KEY);
+      }
+    } catch {
+      // ignore storage errors
+    }
+    if (els.songPlaylistInput && els.songPlaylistInput.value !== songPlaylist) {
+      els.songPlaylistInput.value = songPlaylist;
+    }
+    learnPlaylist = null;
+    learnError = "";
+    openVideoIndex = null;
+    if (!els.learnView.classList.contains("hidden")) {
+      renderLearn();
+    }
+  }
+
+  if (els.songPlaylistInput) {
+    els.songPlaylistInput.addEventListener("input", (e) => {
+      applySongPlaylist(e.target.value);
+    });
+  }
+
+  async function loadLearnPlaylist() {
+    if (learnLoading) return;
+    learnLoading = true;
+    learnError = "";
+    renderLearn();
+    try {
+      const res = await fetch(
+        `/api/youtube/playlist?url=${encodeURIComponent(songPlaylist)}`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not load playlist.");
+      learnPlaylist = data;
+    } catch (err) {
+      learnError = err.message;
+    } finally {
+      learnLoading = false;
+      if (!els.learnView.classList.contains("hidden")) {
+        renderLearn();
+      }
+    }
+  }
+
+  function toggleLearnSection() {
+    learnExpanded = !learnExpanded;
+    if (learnExpanded && !learnPlaylist && !learnLoading && !learnError) {
+      if (songPlaylist) {
+        loadLearnPlaylist();
+        return;
+      }
+    }
+    renderLearn();
+  }
+
+  function renderLearn() {
+    els.learnSections.innerHTML = "";
+
+    const section = document.createElement("div");
+    section.className = "learn-section";
+
+    const header = document.createElement("div");
+    header.className = "learn-section-header";
+
+    const toggle = document.createElement("span");
+    toggle.className = "learn-toggle";
+    toggle.textContent = learnExpanded ? "−" : "+";
+
+    const name = document.createElement("span");
+    name.className = "learn-name";
+    name.textContent = "Song lessons";
+
+    header.appendChild(toggle);
+    header.appendChild(name);
+
+    if (learnPlaylist && learnPlaylist.videos.length) {
+      const count = document.createElement("span");
+      count.className = "learn-count";
+      count.textContent = `(${learnPlaylist.videos.length})`;
+      header.appendChild(count);
+    }
+
+    header.addEventListener("click", toggleLearnSection);
+    section.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "learn-body";
+    if (!learnExpanded) {
+      body.classList.add("hidden");
+      section.appendChild(body);
+      els.learnSections.appendChild(section);
+      return;
+    }
+
+    if (!songPlaylist) {
+      body.appendChild(
+        buildLearnMessage(
+          "Please add a YouTube playlist under Settings",
+          false
+        )
+      );
+    } else if (learnLoading) {
+      body.appendChild(buildLearnMessage("Loading playlist…", false));
+    } else if (learnError) {
+      body.appendChild(buildLearnMessage(learnError, true));
+    } else if (!learnPlaylist || !learnPlaylist.videos.length) {
+      body.appendChild(buildLearnMessage("This playlist has no videos.", false));
+    } else {
+      learnPlaylist.videos.forEach((video, index) => {
+        body.appendChild(buildVideoItem(video, index));
+      });
+    }
+
+    section.appendChild(body);
+    els.learnSections.appendChild(section);
+  }
+
+  function buildLearnMessage(text, isError) {
+    const div = document.createElement("div");
+    div.className = "learn-message";
+    if (isError) div.classList.add("error");
+    div.textContent = text;
+    return div;
+  }
+
+  function buildVideoItem(video, index) {
+    const item = document.createElement("div");
+    item.className = "video-item";
+    if (openVideoIndex === index) item.classList.add("open");
+
+    const title = document.createElement("div");
+    title.className = "video-item-title";
+    title.textContent = video.title || `Video ${index + 1}`;
+
+    const meta = document.createElement("div");
+    meta.className = "video-meta";
+    if (openVideoIndex !== index) meta.classList.add("hidden");
+
+    const thumb = document.createElement("img");
+    thumb.className = "video-thumb";
+    thumb.loading = "lazy";
+    thumb.alt = "";
+    thumb.src = video.thumbnail;
+
+    const details = document.createElement("div");
+    details.className = "video-details";
+
+    const lines = [];
+    if (video.channel) lines.push(video.channel);
+    const stats = [];
+    if (video.duration) stats.push(video.duration);
+    if (video.views) stats.push(`${video.views} views`);
+    if (video.age) stats.push(video.age);
+    if (stats.length) lines.push(stats.join(" · "));
+    if (lines.length) {
+      lines.forEach((line) => {
+        const lineEl = document.createElement("div");
+        lineEl.className = "video-meta-line";
+        lineEl.textContent = line;
+        details.appendChild(lineEl);
+      });
+    } else {
+      const lineEl = document.createElement("div");
+      lineEl.className = "video-meta-line";
+      lineEl.textContent = "YouTube video";
+      details.appendChild(lineEl);
+    }
+
+    const play = document.createElement("button");
+    play.className = "video-play-btn";
+    play.textContent = "▶ Play";
+    play.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playVideo(video);
+    });
+    details.appendChild(play);
+
+    meta.appendChild(thumb);
+    meta.appendChild(details);
+
+    title.addEventListener("click", () => {
+      openVideoIndex = openVideoIndex === index ? null : index;
+      item.classList.toggle("open", openVideoIndex === index);
+      meta.classList.toggle("hidden", openVideoIndex !== index);
+    });
+
+    item.appendChild(title);
+    item.appendChild(meta);
+    return item;
+  }
+
+  function playVideo(video) {
+    if (!video || !video.videoId) return;
+    els.videoFrameWrap.innerHTML = "";
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(
+      video.videoId
+    )}?autoplay=1&rel=0`;
+    iframe.allow =
+      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+    iframe.allowFullscreen = true;
+    iframe.title = video.title || "YouTube video";
+    els.videoFrameWrap.appendChild(iframe);
+
+    els.videoOverlayTitle.textContent = video.title || "";
+    els.videoOverlay.classList.remove("hidden");
+
+    const el = els.videoOverlay;
+    const request =
+      el.requestFullscreen ||
+      el.webkitRequestFullscreen ||
+      el.msRequestFullscreen;
+    if (request) {
+      try {
+        const result = request.call(el);
+        if (result && typeof result.catch === "function") {
+          result.catch(() => {});
+        }
+      } catch {
+        // Fullscreen unsupported; the overlay already fills the viewport.
+      }
+    }
+  }
+
+  function closeVideoOverlay() {
+    els.videoFrameWrap.innerHTML = "";
+    els.videoOverlay.classList.add("hidden");
+    if (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement
+    ) {
+      const exit =
+        document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) {
+        try {
+          exit.call(document);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
+
+  els.videoOverlayClose.addEventListener("click", closeVideoOverlay);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !els.videoOverlay.classList.contains("hidden")) {
+      closeVideoOverlay();
+    }
+  });
 
   function formatTime(seconds) {
     if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
@@ -1285,6 +1575,10 @@
   // Init
   loadTheme();
   applySoundFont(getSoundFontName());
+  songPlaylist = getSongPlaylist();
+  if (els.songPlaylistInput) {
+    els.songPlaylistInput.value = songPlaylist;
+  }
   loadTabs();
   loadBackingTracks();
   setControlMode("tab");

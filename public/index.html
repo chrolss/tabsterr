@@ -45,6 +45,10 @@
           </svg>
           <span class="nav-label">Backing tracks</span>
         </button>
+        <button class="nav-item" data-view="learn">
+          <span class="nav-icon material-icons" aria-hidden="true">&#xe80c;</span>
+          <span class="nav-label">Learn</span>
+        </button>
         <button class="nav-item" data-view="download">
           <span class="nav-icon material-icons" aria-hidden="true">&#xe2c4;</span>
           <span class="nav-label">Download</span>
@@ -100,6 +104,13 @@
           </header>
           <div id="backing-list" class="tab-list"></div>
           <div id="backing-empty-state" class="empty-state hidden">No backing tracks found.</div>
+        </section>
+
+        <section id="learn-view" class="view hidden">
+          <header class="view-header">
+            <h1>Learn</h1>
+          </header>
+          <div id="learn-sections" class="learn-sections"></div>
         </section>
 
         <section id="download-view" class="view hidden">
@@ -238,6 +249,18 @@
               </select>
               <p class="settings-hint">Better sounds more realistic but adds a larger download (~15 MB).</p>
             </div>
+            <div class="settings-group">
+              <label class="settings-label" for="song-playlist-input">Song playlist</label>
+              <input
+                type="url"
+                id="song-playlist-input"
+                class="settings-input"
+                placeholder="https://www.youtube.com/playlist?list=..."
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <p class="settings-hint">Paste a YouTube playlist link to show its videos under Learn.</p>
+            </div>
           </div>
         </section>
 
@@ -326,6 +349,14 @@
 
   <div id="overlay" class="overlay hidden">
     <div class="overlay-content">Loading tab...</div>
+  </div>
+
+  <div id="video-overlay" class="video-overlay hidden">
+    <div class="video-overlay-header">
+      <span id="video-overlay-title" class="video-overlay-title"></span>
+      <button id="video-overlay-close" class="btn-icon video-overlay-close" aria-label="Close video">✕</button>
+    </div>
+    <div id="video-frame-wrap" class="video-frame-wrap"></div>
   </div>
 
   <script src="app.js"></script>

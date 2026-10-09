@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const guitarlesson = require('./scripts/guitarlesson');
+const youtube = require('./scripts/youtube');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -249,6 +250,31 @@ app.post('/api/guitarlesson/download', async (req, res) => {
   } catch (err) {
     console.error('guitarlesson download failed:', err.message);
     res.status(502).json({ error: `Download failed: ${err.message}` });
+  }
+});
+
+const YOUTUBE_CACHE_TTL_MS = 5 * 60 * 1000;
+const youtubeCache = new Map();
+
+app.get('/api/youtube/playlist', async (req, res) => {
+  const input = String(req.query.url || '').trim();
+  const playlistId = youtube.parsePlaylistId(input);
+  if (!playlistId) {
+    return res.status(400).json({ error: 'A valid YouTube playlist link is required.' });
+  }
+
+  const cached = youtubeCache.get(playlistId);
+  if (cached && Date.now() - cached.time < YOUTUBE_CACHE_TTL_MS) {
+    return res.json(cached.data);
+  }
+
+  try {
+    const data = await youtube.fetchPlaylist(playlistId);
+    youtubeCache.set(playlistId, { time: Date.now(), data });
+    res.json(data);
+  } catch (err) {
+    console.error('youtube playlist fetch failed:', err.message);
+    res.status(502).json({ error: `Could not load playlist: ${err.message}` });
   }
 });
 
